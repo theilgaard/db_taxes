@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "db_taxes",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

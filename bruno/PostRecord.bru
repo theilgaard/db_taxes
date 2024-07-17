@@ -1,0 +1,21 @@
+meta {
+  name: PostRecord
+  type: http
+  seq: 4
+}
+
+post {
+  url: http://{{host}}:{{port}}/records
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "municipality": "Kolding",
+    "period_type": "Monthly",
+    "start_date": "2024-06-01",
+    "end_date": "2024-06-30",
+    "tax_rate": 1
+  }
+}

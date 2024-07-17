@@ -1,0 +1,11 @@
+meta {
+  name: test_parsing_error
+  type: http
+  seq: 1
+}
+
+get {
+  url: http://{{host}}:{{port}}/records/{{test_municipality}}/unparsable_date
+  body: none
+  auth: none
+}

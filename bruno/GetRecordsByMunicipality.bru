@@ -1,0 +1,11 @@
+meta {
+  name: GetRecordsByMunicipality
+  type: http
+  seq: 2
+}
+
+get {
+  url: http://{{host}}:{{port}}/records/{{test_municipality}}
+  body: none
+  auth: none
+}
