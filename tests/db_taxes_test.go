@@ -11,6 +11,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"theilgaard/db_taxes/internal/db"
+	"theilgaard/db_taxes/cmd/db_taxes" // Import the configureServer function
 )
 
 func setupTestServer() *httptest.Server {
