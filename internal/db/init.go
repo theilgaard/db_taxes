@@ -3,7 +3,6 @@ package db
 import (
 	"database/sql"
 	"time"
-	"log"
 	_ "github.com/mattn/go-sqlite3" // sqlite3 driver
 )
 
