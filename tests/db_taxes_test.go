@@ -10,12 +10,13 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"theilgaard/db_taxes/internal/db"
 )
 
 func setupTestServer() *httptest.Server {
-	db, _ := initializeDatabase()
-	populateDatabase(db)
-	return httptest.NewServer(configureServer(db))
+	database, _ := db.InitializeDatabase()
+	db.PopulateDatabase(database)
+	return httptest.NewServer(configureServer(database))
 }
 
 func TestAPIEndpoints(t *testing.T) {
@@ -33,7 +34,7 @@ func TestAPIEndpoints(t *testing.T) {
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
 		response_bytes, _ := io.ReadAll(resp.Body)
-		tax_records := []TaxRecord{}
+		tax_records := []db.TaxRecord{}
 		json.Unmarshal(response_bytes, &tax_records)
 
 		assert.Equal(t, expected_tax_rate, tax_records[0].TaxRate)
@@ -50,7 +51,7 @@ func TestAPIEndpoints(t *testing.T) {
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
 		response_bytes, _ := io.ReadAll(resp.Body)
-		tax_records := []TaxRecord{}
+		tax_records := []db.TaxRecord{}
 		json.Unmarshal(response_bytes, &tax_records)
 
 		assert.Equal(t, expected_tax_rate, tax_records[0].TaxRate)
@@ -67,7 +68,7 @@ func TestAPIEndpoints(t *testing.T) {
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
 		response_bytes, _ := io.ReadAll(resp.Body)
-		tax_records := []TaxRecord{}
+		tax_records := []db.TaxRecord{}
 		json.Unmarshal(response_bytes, &tax_records)
 
 		assert.Equal(t, expected_tax_rate, tax_records[0].TaxRate)
@@ -84,7 +85,7 @@ func TestAPIEndpoints(t *testing.T) {
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
 		response_bytes, _ := io.ReadAll(resp.Body)
-		tax_records := []TaxRecord{}
+		tax_records := []db.TaxRecord{}
 		json.Unmarshal(response_bytes, &tax_records)
 
 		assert.Equal(t, expected_tax_rate, tax_records[0].TaxRate)
@@ -101,7 +102,7 @@ func TestAPIEndpoints(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 
 		response_bytes, _ := io.ReadAll(resp.Body)
-		tax_records := []TaxRecord{}
+		tax_records := []db.TaxRecord{}
 		json.Unmarshal(response_bytes, &tax_records)
 
 		assert.Contains(t, string(response_bytes), "Invalid date format")
@@ -110,7 +111,7 @@ func TestAPIEndpoints(t *testing.T) {
 	test_url = "/records/"
 	kolding_start_date, _ := time.Parse(time.DateOnly, "2024-01-01")
 	kolding_end_date, _ := time.Parse(time.DateOnly, "2024-12-31")
-	kolding_tax_record := TaxRecord{Municipality: "Kolding", PeriodType: 4, DateStart: kolding_start_date, DateEnd: kolding_end_date, TaxRate: 0.2}
+	kolding_tax_record := db.TaxRecord{Municipality: "Kolding", PeriodType: 4, DateStart: kolding_start_date, DateEnd: kolding_end_date, TaxRate: 0.2}
 	kolding_tax_record_json, _ := json.Marshal(kolding_tax_record)
 	t.Run("Success POST "+test_url, func(t *testing.T) {
 		resp, err := http.Post(ts.URL+test_url, "application/json", bytes.NewBuffer(kolding_tax_record_json))
@@ -128,7 +129,7 @@ func TestInsertAndReadRecord(t *testing.T) {
 	defer ts.Close()
 
 	test_url := "/records/"
-	new_record := TaxRecord{
+	new_record := db.TaxRecord{
 		Municipality: "TestCity",
 		PeriodType:   3,
 		DateStart:    time.Date(2024, 6, 1, 0, 0, 0, 0, time.UTC),
@@ -155,7 +156,7 @@ func TestInsertAndReadRecord(t *testing.T) {
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
 		response_bytes, _ := io.ReadAll(resp.Body)
-		tax_records := []TaxRecord{}
+		tax_records := []db.TaxRecord{}
 		json.Unmarshal(response_bytes, &tax_records)
 
 		assert.Equal(t, 1, len(tax_records))

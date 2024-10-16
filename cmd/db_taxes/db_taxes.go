@@ -8,10 +8,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/mattn/go-sqlite3" // sqlite3 driver
+	"theilgaard/db_taxes/internal/db"
 )
-
-const db_driver string = "sqlite3"
-const db_location string = "tax_records.db"
 
 type TaxRecord struct {
 	Municipality string    `json:"municipality"`
@@ -131,43 +129,6 @@ func insertTaxRecord(db *sql.DB, record TaxRecord) error {
 	return err
 }
 
-func initializeDatabase() (*sql.DB, error) {
-	// Initialize the database with some initial records
-	db, err := sql.Open(db_driver, db_location)
-	if err != nil {
-		return nil, err
-	}
-
-	const drop string = "DROP TABLE IF EXISTS tax_records;"
-	if _, err := db.Exec(drop); err != nil {
-		return nil, err
-	}
-
-	const create string = `
-		CREATE TABLE tax_records (
-			id INTEGER NOT NULL PRIMARY KEY,
-			municipality TEXT NOT NULL,
-			period_type INT NOT NULL,
-			date_start DATETIME NOT NULL,
-			date_end DATETIME NOT NULL,
-			tax_rate REAL NOT NULL
-	);`
-	if _, err := db.Exec(create); err != nil {
-		return nil, err
-	}
-	return db, nil
-}
-
-func populateDatabase(db *sql.DB) error {
-	// Insert the initial records into the database
-	for _, record := range getInitialTaxRecords() {
-		if err := insertTaxRecord(db, record); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func configureServer(db *sql.DB) *gin.Engine {
 	router := gin.Default()
 	router.GET("/records", getTaxRecords(db))
@@ -180,17 +141,17 @@ func configureServer(db *sql.DB) *gin.Engine {
 
 func main() {
 	// Initialize the database
-	db, err := initializeDatabase()
+	database, err := db.InitializeDatabase()
 	if err != nil {
-		panic(err)
+		log.Fatalf("Failed to initialize database: %v", err)
 	}
 
 	// Populate the database with initial records
-	if err := populateDatabase(db); err != nil {
-		panic(err)
+	if err := db.PopulateDatabase(database); err != nil {
+		log.Fatalf("Failed to populate database: %v", err)
 	}
 
 	// Run the server
-	router := configureServer(db)
+	router := configureServer(database)
 	router.Run(":8080")
 }
