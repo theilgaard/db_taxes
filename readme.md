@@ -1,5 +1,7 @@
 # DB Taxes
 
+[![Go](https://github.com/theilgaard/db_taxes/actions/workflows/unittest.yml/badge.svg?branch=master)](https://github.com/theilgaard/db_taxes/actions/workflows/unittest.yml)
+
 This application solves managing taxes applied in different municipalities. The application uses a sqlite database, and implements a RESTful API.
 
 The following assumptions were made:
