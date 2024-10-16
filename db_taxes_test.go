@@ -22,7 +22,7 @@ func TestAPIEndpoints(t *testing.T) {
 	ts := setupTestServer()
 	defer ts.Close()
 
-	test_url := "/records/Copenhagen/2024-01-01"
+	test_url := "/records/Copenhagen?date=2024-01-01"
 	expected_tax_rate := 0.1
 	t.Run("Success GET "+test_url, func(t *testing.T) {
 		resp, err := http.Get(ts.URL + test_url)
@@ -39,7 +39,7 @@ func TestAPIEndpoints(t *testing.T) {
 		assert.Equal(t, expected_tax_rate, tax_records[0].TaxRate)
 	})
 
-	test_url = "/records/Copenhagen/2024-03-16"
+	test_url = "/records/Copenhagen?date=2024-03-16"
 	expected_tax_rate = 0.2
 	t.Run("Success GET "+test_url, func(t *testing.T) {
 		resp, err := http.Get(ts.URL + test_url)
@@ -56,7 +56,7 @@ func TestAPIEndpoints(t *testing.T) {
 		assert.Equal(t, expected_tax_rate, tax_records[0].TaxRate)
 	})
 
-	test_url = "/records/Copenhagen/2024-05-02"
+	test_url = "/records/Copenhagen?date=2024-05-02"
 	expected_tax_rate = 0.4
 	t.Run("Success GET "+test_url, func(t *testing.T) {
 		resp, err := http.Get(ts.URL + test_url)
@@ -73,7 +73,7 @@ func TestAPIEndpoints(t *testing.T) {
 		assert.Equal(t, expected_tax_rate, tax_records[0].TaxRate)
 	})
 
-	test_url = "/records/Copenhagen/2024-07-10"
+	test_url = "/records/Copenhagen?date=2024-07-10"
 	expected_tax_rate = 0.2
 	t.Run("Success GET "+test_url, func(t *testing.T) {
 		resp, err := http.Get(ts.URL + test_url)
@@ -90,7 +90,7 @@ func TestAPIEndpoints(t *testing.T) {
 		assert.Equal(t, expected_tax_rate, tax_records[0].TaxRate)
 	})
 
-	test_url = "/records/Copenhagen/invalid_date_format"
+	test_url = "/records/Copenhagen?date=invalid_date_format"
 	expected_tax_rate = 0.2
 	t.Run("Invalid Date Format GET "+test_url, func(t *testing.T) {
 		resp, err := http.Get(ts.URL + test_url)
