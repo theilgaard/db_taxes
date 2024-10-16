@@ -37,7 +37,7 @@ func getInitialTaxRecords() []TaxRecord {
 	return tax_records
 }
 
-func initializeDatabase() (*sql.DB, error) {
+func InitializeDatabase() (*sql.DB, error) {
 	// Initialize the database with some initial records
 	db, err := sql.Open(db_driver, db_location)
 	if (err != nil) {
@@ -72,7 +72,7 @@ func insertTaxRecord(db *sql.DB, record TaxRecord) error {
 	return err
 }
 
-func populateDatabase(db *sql.DB) error {
+func PopulateDatabase(db *sql.DB) error {
 	// Insert the initial records into the database
 	for _, record := range getInitialTaxRecords() {
 		if err := insertTaxRecord(db, record); err != nil {
