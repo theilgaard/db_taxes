@@ -25,4 +25,10 @@ jobs:
 
     - name: Run tests
       run: |
-        go test -v ./...
+        go test -v ./... | tee test-report.txt
+
+    - name: Upload test report
+      uses: actions/upload-artifact@v2
+      with:
+        name: test-report
+        path: test-report.txt
