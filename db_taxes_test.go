@@ -15,7 +15,7 @@ import (
 func setupTestServer() *httptest.Server {
 	db, _ := initializeDatabase()
 	populateDatabase(db)
-	return httptest.NewServer(configureServer())
+	return httptest.NewServer(configureServer(db))
 }
 
 func TestAPIEndpoints(t *testing.T) {

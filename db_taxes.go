@@ -57,91 +57,72 @@ func parseRows(c *gin.Context, rows *sql.Rows) {
 	c.IndentedJSON(http.StatusOK, tax_records)
 }
 
-func getTaxRecords(c *gin.Context) {
-	db, err := sql.Open(db_driver, db_location)
-	if err != nil {
-		log.Println(err)
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Failed to connect to database"})
-		return
+func getTaxRecords(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// No municipality or date specified, return all records
+		query := "SELECT * FROM tax_records;"
+		rows, err := db.Query(query)
+		if err != nil {
+			log.Println(err)
+			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch database records"})
+			return
+		}
+		parseRows(c, rows)
 	}
-
-	// No municipality or date specified, return all records
-	query := "SELECT * FROM tax_records;"
-	rows, err := db.Query(query)
-	if err != nil {
-		log.Println(err)
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch database records"})
-		return
-	}
-	parseRows(c, rows)
-
 }
 
-func getTaxRecordsByMunicipality(c *gin.Context) {
-	// Only municipality specified, return all records for that municipality
-	db, err := sql.Open(db_driver, db_location)
-	if err != nil {
-		log.Println(err)
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Failed to connect to database"})
-		return
+func getTaxRecordsByMunicipality(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Only municipality specified, return all records for that municipality
+		municipality := c.Param("municipality")
+		query := "SELECT * FROM tax_records WHERE municipality = ?;"
+		rows, err := db.Query(query, municipality)
+		if err != nil {
+			log.Println(err)
+			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch database records"})
+			return
+		}
+		parseRows(c, rows)
 	}
-
-	municipality := c.Param("municipality")
-	query := "SELECT * FROM tax_records WHERE municipality = ?;"
-	rows, err := db.Query(query, municipality)
-	if err != nil {
-		log.Println(err)
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch database records"})
-		return
-	}
-	parseRows(c, rows)
 }
 
-func getTaxRecordsByMunicipalityAndDate(c *gin.Context) {
-	// Both municipality and date specified, return single record for that municipality and date
-	// Precedence on period_type is made by Daily, Weekly, Monthly, Yearly as 1, 2, 3, 4 respectively.
-	db, err := sql.Open(db_driver, db_location)
-	if err != nil {
-		log.Println(err)
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Failed to connect to database"})
-		return
+func getTaxRecordsByMunicipalityAndDate(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Both municipality and date specified, return single record for that municipality and date
+		// Precedence on period_type is made by Daily, Weekly, Monthly, Yearly as 1, 2, 3, 4 respectively.
+		municipality := c.Param("municipality")
+		date := c.Param("date")
+		date_time, err := time.Parse(time.DateOnly, date)
+		if err != nil {
+			log.Println(err)
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": "Invalid date format"})
+			return
+		}
+		query := "SELECT * FROM tax_records WHERE municipality = ? AND (date_start <= ? AND date_end >= ?) ORDER BY period_type LIMIT 1;"
+		rows, err := db.Query(query, municipality, date_time, date_time)
+		if err != nil {
+			log.Println(err)
+			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch database records"})
+			return
+		}
+		parseRows(c, rows)
 	}
-
-	municipality := c.Param("municipality")
-	date := c.Param("date")
-	date_time, err := time.Parse(time.DateOnly, date)
-	if err != nil {
-		log.Println(err)
-		c.IndentedJSON(http.StatusBadRequest, gin.H{"error": "Invalid date format"})
-		return
-	}
-	query := "SELECT * FROM tax_records WHERE municipality = ? AND (date_start <= ? AND date_end >= ?) ORDER BY period_type LIMIT 1;"
-	rows, err := db.Query(query, municipality, date_time, date_time)
-	if err != nil {
-		log.Println(err)
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch database records"})
-		return
-	}
-	parseRows(c, rows)
 }
 
-func postTaxRecord(c *gin.Context) {
-	// Parse the JSON body
-	var record TaxRecord
-	if err := c.BindJSON(&record); err != nil {
-		c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
+func postTaxRecord(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Parse the JSON body
+		var record TaxRecord
+		if err := c.BindJSON(&record); err != nil {
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 
-	// Insert the record into the database
-	db, err := sql.Open(db_driver, db_location)
-	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	if err := insertTaxRecord(db, record); err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+		// Insert the record into the database
+		if err := insertTaxRecord(db, record); err != nil {
+			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
 	}
 }
 
@@ -190,12 +171,12 @@ func populateDatabase(db *sql.DB) error {
 	return nil
 }
 
-func configureServer() *gin.Engine {
+func configureServer(db *sql.DB) *gin.Engine {
 	router := gin.Default()
-	router.GET("/records", getTaxRecords)
-	router.GET("/records/:municipality", getTaxRecordsByMunicipality)
-	router.GET("/records/:municipality/:date", getTaxRecordsByMunicipalityAndDate)
-	router.POST("/records", postTaxRecord)
+	router.GET("/records", getTaxRecords(db))
+	router.GET("/records/:municipality", getTaxRecordsByMunicipality(db))
+	router.GET("/records/:municipality/:date", getTaxRecordsByMunicipalityAndDate(db))
+	router.POST("/records", postTaxRecord(db))
 
 	return router
 }
@@ -213,6 +194,6 @@ func main() {
 	}
 
 	// Run the server
-	router := configureServer()
+	router := configureServer(db)
 	router.Run(":8080")
 }
