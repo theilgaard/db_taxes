@@ -122,3 +122,47 @@ func TestAPIEndpoints(t *testing.T) {
 	})
 
 }
+
+func TestInsertAndReadRecord(t *testing.T) {
+	ts := setupTestServer()
+	defer ts.Close()
+
+	test_url := "/records/"
+	new_record := TaxRecord{
+		Municipality: "TestCity",
+		PeriodType:   3,
+		DateStart:    time.Date(2024, 6, 1, 0, 0, 0, 0, time.UTC),
+		DateEnd:      time.Date(2024, 6, 30, 0, 0, 0, 0, time.UTC),
+		TaxRate:      0.5,
+	}
+	new_record_json, _ := json.Marshal(new_record)
+
+	t.Run("Insert Record", func(t *testing.T) {
+		resp, err := http.Post(ts.URL+test_url, "application/json", bytes.NewBuffer(new_record_json))
+		if err != nil {
+			t.Fatalf("Failed to send POST request: %v", err)
+		}
+
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+	})
+
+	t.Run("Read Inserted Record", func(t *testing.T) {
+		resp, err := http.Get(ts.URL + "/records/TestCity?date=2024-06-15")
+		if err != nil {
+			t.Fatalf("Failed to send GET request: %v", err)
+		}
+
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+		response_bytes, _ := io.ReadAll(resp.Body)
+		tax_records := []TaxRecord{}
+		json.Unmarshal(response_bytes, &tax_records)
+
+		assert.Equal(t, 1, len(tax_records))
+		assert.Equal(t, new_record.Municipality, tax_records[0].Municipality)
+		assert.Equal(t, new_record.PeriodType, tax_records[0].PeriodType)
+		assert.Equal(t, new_record.DateStart, tax_records[0].DateStart)
+		assert.Equal(t, new_record.DateEnd, tax_records[0].DateEnd)
+		assert.Equal(t, new_record.TaxRate, tax_records[0].TaxRate)
+	})
+}
