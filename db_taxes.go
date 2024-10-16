@@ -71,27 +71,24 @@ func getTaxRecords(db *sql.DB) gin.HandlerFunc {
 	}
 }
 
-func getTaxRecordsByMunicipality(db *sql.DB) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		// Only municipality specified, return all records for that municipality
-		municipality := c.Param("municipality")
-		query := "SELECT * FROM tax_records WHERE municipality = ?;"
-		rows, err := db.Query(query, municipality)
-		if err != nil {
-			log.Println(err)
-			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch database records"})
-			return
-		}
-		parseRows(c, rows)
-	}
-}
-
 func getTaxRecordsByMunicipalityAndDate(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Both municipality and date specified, return single record for that municipality and date
 		// Precedence on period_type is made by Daily, Weekly, Monthly, Yearly as 1, 2, 3, 4 respectively.
 		municipality := c.Param("municipality")
 		date := c.Query("date")
+		if date == "" {
+			// Only municipality specified, return all records for that municipality
+			query := "SELECT * FROM tax_records WHERE municipality = ?;"
+			rows, err := db.Query(query, municipality)
+			if err != nil {
+				log.Println(err)
+				c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch database records"})
+				return
+			}
+			parseRows(c, rows)
+			return
+		}
 		date_time, err := time.Parse(time.DateOnly, date)
 		if err != nil {
 			log.Println(err)
@@ -174,7 +171,6 @@ func populateDatabase(db *sql.DB) error {
 func configureServer(db *sql.DB) *gin.Engine {
 	router := gin.Default()
 	router.GET("/records", getTaxRecords(db))
-	router.GET("/records/:municipality", getTaxRecordsByMunicipality(db))
 	router.GET("/records/:municipality", getTaxRecordsByMunicipalityAndDate(db))
 
 	router.POST("/records", postTaxRecord(db))
