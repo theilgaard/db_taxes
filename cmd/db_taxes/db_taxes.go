@@ -57,26 +57,24 @@ func parseRows(c *gin.Context, rows *sql.Rows) {
 	c.IndentedJSON(http.StatusOK, tax_records)
 }
 
-func getTaxRecords(db *sql.DB) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		// No municipality or date specified, return all records
-		query := "SELECT * FROM tax_records;"
-		rows, err := db.Query(query)
-		if err != nil {
-			log.Println(err)
-			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch database records"})
-			return
-		}
-		parseRows(c, rows)
-	}
-}
-
 func getTaxRecordsByMunicipalityAndDate(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Both municipality and date specified, return single record for that municipality and date
 		// Precedence on period_type is made by Daily, Weekly, Monthly, Yearly as 1, 2, 3, 4 respectively.
-		municipality := c.Param("municipality")
+		municipality := c.Query("municipality")
 		date := c.Query("date")
+		if municipality == "" {
+			// No municipality specified, return all records
+			query := "SELECT * FROM tax_records;"
+			rows, err := db.Query(query)
+			if err != nil {
+				log.Println(err)
+				c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch database records"})
+				return
+				}
+			parseRows(c, rows)
+			return
+		}
 		if date == "" {
 			// Only municipality specified, return all records for that municipality
 			query := "SELECT * FROM tax_records WHERE municipality = ?;"
@@ -170,8 +168,7 @@ func populateDatabase(db *sql.DB) error {
 
 func configureServer(db *sql.DB) *gin.Engine {
 	router := gin.Default()
-	router.GET("/records", getTaxRecords(db))
-	router.GET("/records/:municipality", getTaxRecordsByMunicipalityAndDate(db))
+	router.GET("/records", getTaxRecordsByMunicipalityAndDate(db))
 
 	router.POST("/records", postTaxRecord(db))
 
